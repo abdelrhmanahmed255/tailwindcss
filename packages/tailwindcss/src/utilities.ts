@@ -416,10 +416,26 @@ export function createUtilities(theme: Theme) {
           value = candidate.value.value
           dataType = candidate.value.dataType
         } else {
+          let primaryKeys = desc.themeKeys ? desc.themeKeys.slice(0, 1) : []
           value = theme.resolve(
             candidate.value.fraction ?? candidate.value.value,
-            desc.themeKeys ?? [],
+            primaryKeys,
           )
+
+          if (value === null && !negative && desc.staticValues && !candidate.modifier) {
+            let fallback = desc.staticValues[candidate.value.value]
+            if (fallback) {
+              return fallback.map(cloneAstNode)
+            }
+          }
+
+          if (value === null && desc.themeKeys && desc.themeKeys.length > 1) {
+            let fallbackKeys = desc.themeKeys.slice(1)
+            value = theme.resolve(
+              candidate.value.fraction ?? candidate.value.value,
+              fallbackKeys,
+            )
+          }
 
           // If the theme value resolved without consuming the modifier, then
           // the modifier would be silently ignored and `w-4` and `w-4/foo`
@@ -447,11 +463,6 @@ export function createUtilities(theme: Theme) {
           if (value === null && desc.handleBareValue) {
             value = desc.handleBareValue(candidate.value)
             if (!value?.includes('/') && candidate.modifier) return
-          }
-
-          if (value === null && !negative && desc.staticValues && !candidate.modifier) {
-            let fallback = desc.staticValues[candidate.value.value]
-            if (fallback) return fallback.map(cloneAstNode)
           }
         }
 
